@@ -1,7 +1,6 @@
 from math import log2
 import os
 import time
-import sys
 
 #-------------PARAMETROS----------------
 RUTA_DOCUMENTOS = "corpus"
@@ -51,9 +50,8 @@ if __name__ == "__main__":
 
     for iDocumento, documento in enumerate(documentos):
         if(iDocumento%1000 == 0): 
-            print(iDocumento)
-            print(sys.getsizeof(TF))
-            print(len(terminos))
+            print("Documentos procesados: "+iDocumento+"/"+nDocumentos)
+
         terminosDocumento = obtenerTerminos(documento)
         nTerminosPrevio = len(terminos)
         terminos.update(terminosDocumento)
@@ -80,7 +78,7 @@ if __name__ == "__main__":
         for j in range(nDocumentos):
             TFIDF[i][j] = TF[termino][j] * IDF[i]
 
-    end = time.time()
 
+    end = time.time()
     elapsed_time = end - start
     print('Execution time:', elapsed_time, 'seconds')
