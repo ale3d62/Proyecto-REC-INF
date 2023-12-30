@@ -10,6 +10,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.util.stream.Collectors;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,16 +46,13 @@ class indexador{
 
 
     public static List<String> preprocesarTerminos(List<String> terminos){
+        return terminos.stream().filter(termino -> !palabrasVacias.contains(termino)).collect(Collectors.toList());
+    }
 
-        List<String> terminosFiltrados = new ArrayList<String>();
+    
 
-        for(String termino : terminos){
-            if(!palabrasVacias.contains(termino)){
-                terminosFiltrados.add(termino);
-            }
-        }
-
-        return terminosFiltrados;
+    public static List<String> eliminarTerminosCortos(List<String> terminos){
+        return terminos.stream().filter(termino -> termino.length() >= 3).collect(Collectors.toList());
     }
 
 
@@ -88,6 +86,7 @@ class indexador{
             List<String> terminos = Arrays.asList(texto.split(" "));
             terminos = preprocesarTerminos(terminos);
             terminos = stemming(terminos);
+            terminos = eliminarTerminosCortos(terminos);
 
             return terminos;
         }
@@ -274,6 +273,7 @@ class indexador{
         long finish = System.currentTimeMillis();
         long timeElapsed = finish - start;
         System.out.println("Indexacion terminada en: " + timeElapsed + "ms");
+        System.out.println(terminos.size() + " terminos");
         
 
         //CALCULAR IDF
