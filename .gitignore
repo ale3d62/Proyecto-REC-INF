@@ -1,6 +1,7 @@
 corpus
-test
+backups
 Enunciado_Proyecto_RECINF.pdf
 Proyecto.pdf
-test.py
-corpus.zip
+indice_invertido.json
+longitud_documentos.json
+*.class

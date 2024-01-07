@@ -18,17 +18,30 @@ import java.util.concurrent.TimeUnit;
 
 import org.tartarus.snowball.ext.englishStemmer;
 
+
+
 class indexador{
 
     //PARAMETROS
-    public static String RUTA_DOCUMENTOS = "corpus";
-    public static Set<String> palabrasVacias = new HashSet<String>();
+    //------------------------------------------------------------------------------------------------
+    public static String RUTA_DOCUMENTOS = "corpus";                            //Directorio
+    public static String RUTA_PALABRAS_VACIAS = "palabras_vacias.txt";          //Archivo de texto
+    public static String NOMBRE_LONG_DOCUMENTOS = "longitud_documentos.json";   //Archivo formato json
+    public static String NOMBRE_INDICE_INVERTIDO = "indice_invertido.json";     //Archivo formato json
+    public static int numeroThreadsEnPool = 8;                                  //Entero >= 1
+    //------------------------------------------------------------------------------------------------
+
+
 
     //VARIABLES GLOBALES
     public static String[] documentos;
     public static Map<String, Object[]> indiceInvertido = new HashMap<String, Object[]>();
     public static Map<String, Integer> apariciones = new HashMap<String, Integer>();
     public static Set<String> terminos = new HashSet<String>();
+    public static Set<String> palabrasVacias = new HashSet<String>();
+    public static int nDocumentos;
+    public static int nDocumentosProcesados = 0;
+
 
 
 
@@ -100,7 +113,7 @@ class indexador{
 
 
     public static void cargarPalabrasVacias(){
-        try (BufferedReader br = new BufferedReader(new FileReader("palabras_vacias.txt"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(RUTA_PALABRAS_VACIAS))) {
             String linea;
 
             while ((linea = br.readLine()) != null) {
@@ -138,7 +151,7 @@ class indexador{
 
         //Exportar
         int nDocumentos = longDocumentos.size();
-        File file = new File("longDocumentos.json"); 
+        File file = new File(NOMBRE_LONG_DOCUMENTOS); 
         
         try{
             BufferedWriter bf = new BufferedWriter(new FileWriter(file));
@@ -159,7 +172,6 @@ class indexador{
             bf.close(); 
         }
         catch(IOException e){
-            //e.printStackTrace();
             System.out.println("ERROR DURANTE LA EXPORACION DE LONGDOCUMENTOS");
         }
     }
@@ -167,7 +179,7 @@ class indexador{
 
 
     public static void exportarIndiceInvertido(Map<String, Object[]> indiceInvertido){
-        File file = new File("indice_invertido.json");
+        File file = new File(NOMBRE_INDICE_INVERTIDO);
 
         try{
             BufferedWriter bf = new BufferedWriter(new FileWriter(file));
@@ -203,7 +215,6 @@ class indexador{
             bf.close(); 
         }
         catch(IOException e){
-            //e.printStackTrace();
             System.out.println("ERROR DURANTE LA EXPORACION DE INDICEINVERTIDO");
         }
 
@@ -213,10 +224,7 @@ class indexador{
 
     private final Object lock = new Object();
     public void TF(int iDocumento){
-        //if(iDocumento%1000 == 0 && iDocumento > 0){
-            //System.out.println("Documentos procesados: "+(iDocumento+1)+"/"+nDocumentos);
-        //}
-        
+
         List<String> terminosDocumento = obtenerTerminos(documentos[iDocumento]);
         Set<String> setTerminosDocumento = new HashSet<String>(terminosDocumento);
         synchronized(lock){
@@ -237,9 +245,19 @@ class indexador{
                 HashMap<String, Float> hashmap = (HashMap<String, Float>)indiceInvertido.get(termino)[1];
                 hashmap.put(documentos[iDocumento], 1+(float)(Math.log(nApariciones)/(float)Math.log(2)));
                 apariciones.put(termino, apariciones.get(termino)+1);
+                
+            }
+        }
+        synchronized(lock){
+            nDocumentosProcesados++;
+            if(nDocumentosProcesados%1000 == 0){
+                System.out.println("Procesando Documentos ["+String.format("%.2f", (nDocumentosProcesados/(float)nDocumentos*100))+"%]");
+                System.out.print(String.format("\033[%dA",1)); //Mover cursor a la linea superior (para borrar la linea escrita con el siguiente print)
             }
         }
     }
+
+
 
 
 
@@ -249,10 +267,9 @@ class indexador{
         cargarPalabrasVacias();
         File directorioDocumentos = new File(RUTA_DOCUMENTOS);
         documentos = directorioDocumentos.list();
-        int nDocumentos = documentos.length;
+        nDocumentos = documentos.length;
 
 
-        int numeroThreadsEnPool = 8;
         ExecutorService executorService = Executors.newFixedThreadPool(numeroThreadsEnPool);
         indexador miClase = new indexador();
 
@@ -280,7 +297,7 @@ class indexador{
         int nTerminos = terminos.size();
 
         for(String termino : terminos){
-            float idf = (float)(Math.log((nDocumentos/(double)apariciones.get(termino)))/Math.log(2));
+            float idf = (float)(Math.log((nDocumentos/(float)apariciones.get(termino)))/Math.log(2));
             indiceInvertido.get(termino)[0] = idf;
             HashMap<String, Float> hashmap = (HashMap<String, Float>)indiceInvertido.get(termino)[1];
             for(String documento : hashmap.keySet())
@@ -295,16 +312,5 @@ class indexador{
         finish = System.currentTimeMillis();
         timeElapsed = finish - start;
         System.out.println("Exportacion terminada en: " + timeElapsed + "ms");
-
-        /*
-        //MOSTRAR TFIDF
-        for(String termino : terminos){
-            System.out.print(termino+": ");
-            HashMap<String, Float> hashmap = (HashMap<String, Float>)indiceInvertido.get(termino)[1];
-            for(String documento : hashmap.keySet()){
-                System.out.print(hashmap.get(documento)+" ");
-            }
-            System.out.println("");
-        }*/
     }
 }
