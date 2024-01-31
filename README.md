@@ -1,7 +1,6 @@
 # Proyecto-REC-INF
 
-*Alejandro Díaz Gómez y Juan Luis Sena Cárdenas*
-(ale3d62)[https://github.com/ale3d62] y (juanlu777)[https://github.com/juanlu777]
+*[Alejandro Díaz Gómez](https://github.com/ale3d62) y [Juan Luis Sena Cárdenas](https://github.com/juanlu777)*
 
 Es necesario mencionar previamente que todo el sistema ha sido probado con la versión de java 19 (build 19+36-2238), no se asegura en ningún momento el funcionamiento del mismo en otras versiones. 
 
