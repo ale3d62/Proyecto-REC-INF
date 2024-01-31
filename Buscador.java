@@ -18,10 +18,27 @@ import org.tartarus.snowball.ext.englishStemmer;
 import java.lang.Math;
 
 
+
 public class Buscador {
+
+
+	//PARAMETROS
+	//------------------------------------------------------------------------------------------------
+	public static String ruta_documentos = "corpus"; // Ruta donde se encuentran los documentos de docs
+	// Ruta donde se encuentra el fichero con las palabras vacías
+	// hay palabras en inglés solamente ya que es el idioma en el que están escritos
+	// los documentos, la consulta deberá hacerse también en inglés o no devolverá
+	// ningún resultado
+	public static String ruta_fichero_pv = "palabras_vacias.txt";
+	public static String ruta_lon_doc = "longitud_documentos.json"; // Ruta del fichero donde se encuentran los documentos junto con su longitud
+	public static String ruta_indice = "indice_invertido.json";     // Ruta del fichero donde se encuentra el índice invertido
+	public static Integer n = 10; // Numero maximo de documentos a devolver por consulta
+	//------------------------------------------------------------------------------------------------
+
+
+
+
     public static void main(String[] args) {
-        String ruta_indice = "indice_invertido.json"; // Ruta del fichero donde se encuentra el índice invertido
-        String ruta_lon_doc = "longitud_documentos.json"; // Ruta del fichero donde se encuentran los documentos junto con su longitud
         try {
         	// Almacenamos en un map el índice invertido
             HashMap<String, Object[]> indice_invertido = LeerIndiceInvertido(ruta_indice);   
@@ -57,7 +74,7 @@ public class Buscador {
             		if (!tipo_correcto) {
             			System.out.println("Elección de tipo errónea, vuelva a introducirlo");
             		}
-            		System.out.print("Introduce el tipo de consulta [y] para AND [o] para OR: ";
+            		System.out.print("Introduce el tipo de consulta [y] para AND [o] para OR: ");
             		tipo = scanner.nextLine();
             		if (tipo.equals("y") | tipo.equals("o"))
             			tipo_correcto = true;
@@ -88,25 +105,24 @@ public class Buscador {
             	// Ordenamos los documentos en orden decreciente de similitud con la consulta
             	// Devuelve los n primeros documentos de esa lista de documentos ordenada en caso
             	// de que n <= numero_documentos o todos los documentos en caso de que n > numero_documentos
-            	Integer n = 3;
             	List<String> documentos_rankeados = ranking(documentos_similitud, n);
             	// Imprimimos los documentos
-				if(documentos_rankeados.size() > 0){
-					System.out.println("Documentos resultantes: ");
-            		System.out.println(documentos_rankeados.toString());
-				}
-				else{
-					System.out.println("No existen documentos relevantes para la consulta introducida");
-				}
-				
+				System.out.println("Resultado de la consulta: ");
+            	System.out.println(documentos_rankeados.toString());
             }
             // En caso de que sí sea una frase
             else {
+            	// Obtenemos los términos de la frase sin procesar
             	String[] terminos = consulta.split(" ");
+            	// Obtenemos los términos de la frase procesados
+            	String consultaProcesada = new String("");
+            	consultaProcesada = preprocesarCaracteres(consulta);
+            	HashSet<String> terminosConsulta = obtenerTerminos(consultaProcesada);
+            	terminosConsulta = preprocesarTerminos(terminosConsulta);
             	// Para que un documento contenga una frase ha de tener todos los términos que
             	// aparecen en esa frase, por tanto calculamos la intersección de las listas
             	// de documentos de los términos de la frase
-            	HashSet<String> is = interseccion(new HashSet<String>(Arrays.asList(terminos)), indice_invertido);
+            	HashSet<String> is = interseccion(terminosConsulta, indice_invertido);
             	// Ahora cargamos el contenido de esos documentos
             	HashMap<String, String> docs_contenido = cargar_contenido(is);
             	// Finalmente almacenamos únicamente los documentos en los que haya al menos
@@ -115,6 +131,7 @@ public class Buscador {
             	HashMap<String, ArrayList<Integer[]>> docs_frase = devolver_intervalos(terminos, docs_contenido);
             	// Imprimimos el resultado
             	ArrayList<Integer[]> intervalos = new ArrayList<Integer[]>();
+				System.out.println("Resultado de la consulta: ");
             	System.out.println("{");
             	for (HashMap.Entry<String, ArrayList<Integer[]>> doc_frase : docs_frase.entrySet()) {
             		System.out.print("\t" + doc_frase.getKey() + " : [");
@@ -176,11 +193,7 @@ public class Buscador {
     private static HashSet<String> preprocesarTerminos(HashSet<String> terminos) {
     	// Almacenaremos las palabras vacías en esta estructura de datos
     	HashSet<String> palabras_vacias = new HashSet<String>();
-    	// Ruta donde se encuentra el fichero con las palabras vacías
-    	// hay palabras en inglés solamente ya que es el idioma en el que están escritos
-    	// los documentos, la consulta deberá hacerse también en inglés o no devolverá
-    	// ningún resultado
-    	String ruta_fichero_pv = "palabras_vacias.txt";
+
     	// Leemos el fichero y almacenamos las palabras vacías en palabras_vacias
     	try (BufferedReader br = new BufferedReader(new FileReader(ruta_fichero_pv))) {
             String linea;
@@ -316,7 +329,7 @@ public class Buscador {
     	List<HashMap.Entry<String, Double>> lista_docs_sim = new ArrayList<>(docs_sim.entrySet());
     	Collections.sort(lista_docs_sim, Collections.reverseOrder(HashMap.Entry.comparingByValue()));
     	List<String> documentos_rankeados = new ArrayList<String>();
-    	Integer i = 0;
+    	int i = 0;
     	for (HashMap.Entry<String, Double> doc_sim : lista_docs_sim) {
     		if (i == n)
     			break;
@@ -328,8 +341,6 @@ public class Buscador {
     // Método para escribir el contenido de los documentos pasados como parámetro en el HashMap
     // que devuelve
     private static HashMap<String, String> cargar_contenido(HashSet<String> docs) {
-    	// Ruta donde se encuentran los documentos de docs
-    	String ruta_documentos = "ruta_corpus";
     	// Estructura de datos donde almacenaremos el contenido de los documentos
     	HashMap<String, String> docs_contenido = new HashMap<String, String>();
     	// Ruta final con el nombre del documento
